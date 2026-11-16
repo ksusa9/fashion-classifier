@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Распознавание одежды</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5" style="max-width: 500px;">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h3 class="card-title mb-4">Что на фото?</h3>
+                <input type="file" id="imageInput" class="form-control mb-3" accept="image/*">
+                
+                <!-- Новый чекбокс -->
+                <div class="form-check text-start mb-3">
+                    <input class="form-check-input" type="checkbox" id="invertCheck" checked>
+                    <label class="form-check-label" for="invertCheck">
+                        Фото на светлом фоне (инвертировать цвета)
+                    </label>
+                </div>
+                
+                <img id="preview" src="" alt="Предпросмотр" class="img-fluid mb-3 d-none" style="max-height: 250px; object-fit: contain;">
+                
+                <button id="predictBtn" class="btn btn-primary w-100 mb-3">Распознать одежду</button>
+                
+                <div id="result" class="alert alert-success d-none" role="alert">
+                    <strong>Результат:</strong> <span id="classOutput"></span><br>
+                    <small class="text-muted">Уверенность: <span id="confOutput"></span>%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const invertCheck = document.getElementById('invertCheck');
+        const preview = document.getElementById('preview');
+        const predictBtn = document.getElementById('predictBtn');
+        const resultDiv = document.getElementById('result');
+        const classOutput = document.getElementById('classOutput');
+        const confOutput = document.getElementById('confOutput');
+
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('d-none');
+                resultDiv.classList.add('d-none');
+            }
+        });
+
+        predictBtn.addEventListener('click', async () => {
+            if (!imageInput.files[0]) {
+                alert('Пожалуйста, выберите изображение');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', imageInput.files[0]);
+            // Передаем состояние чекбокса на сервер
+            formData.append('invert', invertCheck.checked);
+
+            predictBtn.disabled = true;
+            predictBtn.innerText = 'Обработка...';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                classOutput.innerText = data.class_name;
+                confOutput.innerText = (data.confidence * 100).toFixed(2);
+                resultDiv.classList.remove('d-none');
+            } catch (error) {
+                alert('Ошибка при распознавании');
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.innerText = 'Распознать одежду';
+            }
+        });
+    </script>
+</body>
+</html>
